@@ -2,169 +2,114 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>CTS Photo Album</title>
-
 <style>
-*{
-    margin:0;
-    padding:0;
-    box-sizing:border-box;
-}
-
-body{
-    font-family:Arial, sans-serif;
-    background:#f4f4f4;
-}
-
-header{
-    background:#1e293b;
-    color:white;
-    padding:20px;
-    text-align:center;
-}
-
-.gallery{
-    padding:20px;
-    display:grid;
-    grid-template-columns:repeat(auto-fill,minmax(250px,1fr));
-    gap:20px;
-}
-
-.card{
-    background:white;
-    border-radius:10px;
-    overflow:hidden;
-    box-shadow:0 3px 10px rgba(0,0,0,0.15);
-}
-
-.card img{
-    width:100%;
-    height:250px;
-    object-fit:cover;
-    cursor:pointer;
-    transition:.3s;
-}
-
-.card img:hover{
-    transform:scale(1.03);
-}
-
-.actions{
-    padding:10px;
-    text-align:center;
-}
-
-.download-btn{
-    display:inline-block;
-    text-decoration:none;
-    background:#2563eb;
-    color:white;
-    padding:8px 15px;
-    border-radius:5px;
-}
-
-.download-btn:hover{
-    background:#1d4ed8;
-}
-
-.modal{
-    display:none;
-    position:fixed;
-    top:0;
-    left:0;
-    width:100%;
-    height:100%;
-    background:rgba(0,0,0,0.9);
-    justify-content:center;
-    align-items:center;
-    z-index:1000;
-}
-
-.modal img{
-    max-width:90%;
-    max-height:90%;
-}
-
-.close{
-    position:absolute;
-    top:20px;
-    right:30px;
-    color:white;
-    font-size:40px;
-    cursor:pointer;
-}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:Arial,sans-serif;background:#0f172a;color:#fff}
+header{padding:25px;background:linear-gradient(90deg,#2563eb,#7c3aed);text-align:center;position:sticky;top:0}
+.controls{display:flex;justify-content:center;gap:15px;flex-wrap:wrap;margin-top:15px}
+input{padding:10px 14px;border:none;border-radius:25px;width:320px;max-width:90%}
+#count{padding:10px 16px;background:rgba(255,255,255,.2);border-radius:20px}
+.gallery{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px;padding:25px}
+.card{background:#1e293b;border-radius:16px;overflow:hidden;box-shadow:0 8px 20px rgba(0,0,0,.3);transition:.3s}
+.card:hover{transform:translateY(-6px)}
+.card img{width:100%;height:220px;object-fit:cover;cursor:pointer}
+.info{padding:12px}
+.name{font-size:.9rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.btns{display:flex;gap:10px;margin-top:10px}
+.btn{flex:1;text-align:center;text-decoration:none;color:#fff;background:#2563eb;padding:10px;border-radius:8px}
+.btn:hover{background:#1d4ed8}
+.modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.92);justify-content:center;align-items:center;flex-direction:column;z-index:99}
+.modal img{max-width:90%;max-height:75vh;border-radius:12px}
+.nav{margin-top:15px;display:flex;gap:15px;flex-wrap:wrap}
+.nav button,.nav a{padding:10px 18px;border:none;border-radius:8px;background:#2563eb;color:#fff;text-decoration:none;cursor:pointer}
+.close{position:absolute;top:20px;right:25px;font-size:36px;cursor:pointer}
+footer{text-align:center;padding:25px;color:#94a3b8}
 </style>
 </head>
-
 <body>
-
 <header>
-    <h1>CTS Photo Album</h1>
-    <p>Click image to view • Download any photo</p>
+<h1>📸 CTS Photo Album</h1>
+<div class="controls">
+<input id="search" placeholder="Search photos...">
+<div id="count">0 Photos</div>
+</div>
 </header>
 
-<div class="gallery" id="gallery"></div>
+<div id="gallery" class="gallery"></div>
 
 <div class="modal" id="modal">
-    <span class="close" onclick="closeModal()">&times;</span>
-    <img id="modalImg">
+<div class="close" onclick="closeModal()">✖</div>
+<img id="viewer">
+<div class="nav">
+<button onclick="prevImage()">⬅ Previous</button>
+<a id="downloadBtn" download>⬇ Download</a>
+<button onclick="nextImage()">Next ➡</button>
+</div>
 </div>
 
+<footer>CTS Photo Album • GitHub Pages</footer>
+
 <script>
+let photos=[],filtered=[],current=0;
+const gallery=document.getElementById("gallery");
 
-fetch('photos.json')
-.then(response => response.json())
-.then(files => {
-
-    const gallery = document.getElementById('gallery');
-
-    files.forEach(file => {
-
-        const imagePath = `photos/CTS/${file}`;
-
-        const card = document.createElement('div');
-        card.className = 'card';
-
-        card.innerHTML = `
-            <img src="${imagePath}"
-                 loading="lazy"
-                 onclick="openModal('${imagePath}')">
-
-            <div class="actions">
-                <a href="${imagePath}"
-                   download
-                   class="download-btn">
-                   Download
-                </a>
-            </div>
-        `;
-
-        gallery.appendChild(card);
-    });
-
+fetch("./photos.json")
+.then(r=>{if(!r.ok)throw new Error("photos.json missing");return r.json()})
+.then(data=>{
+  photos=data.map(p=>p.startsWith("photos/")?p:"photos/CTS/"+p);
+  filtered=[...photos];
+  render();
 })
-.catch(err => {
-    document.getElementById('gallery').innerHTML =
-    "<h2 style='text-align:center'>Unable to load photos.json</h2>";
+.catch(e=>{
+ gallery.innerHTML="<h2 style='grid-column:1/-1;text-align:center'>Unable to load photos.json</h2><p style='grid-column:1/-1;text-align:center'>"+e.message+"</p>";
 });
 
-function openModal(src){
-    document.getElementById('modal').style.display='flex';
-    document.getElementById('modalImg').src=src;
+function render(){
+ gallery.innerHTML="";
+ document.getElementById("count").textContent=filtered.length+" Photos";
+ filtered.forEach((src,i)=>{
+   const c=document.createElement("div");
+   c.className="card";
+   const name=src.split("/").pop();
+   c.innerHTML=`<img src="${src}" onclick="openModal(${i})">
+   <div class="info">
+   <div class="name">${name}</div>
+   <div class="btns">
+   <a class="btn" href="${src}" download>⬇ Download</a>
+   </div></div>`;
+   gallery.appendChild(c);
+ });
 }
 
-function closeModal(){
-    document.getElementById('modal').style.display='none';
-}
-
-document.getElementById('modal').addEventListener('click',function(e){
-    if(e.target===this){
-        closeModal();
-    }
+document.getElementById("search").addEventListener("input",e=>{
+ const q=e.target.value.toLowerCase();
+ filtered=photos.filter(p=>p.toLowerCase().includes(q));
+ render();
 });
 
+function openModal(i){
+ current=i;
+ document.getElementById("modal").style.display="flex";
+ updateViewer();
+}
+function updateViewer(){
+ const src=filtered[current];
+ viewer.src=src;
+ downloadBtn.href=src;
+}
+function closeModal(){modal.style.display="none";}
+function nextImage(){current=(current+1)%filtered.length;updateViewer();}
+function prevImage(){current=(current-1+filtered.length)%filtered.length;updateViewer();}
+document.addEventListener("keydown",e=>{
+ if(modal.style.display==="flex"){
+   if(e.key==="Escape")closeModal();
+   if(e.key==="ArrowRight")nextImage();
+   if(e.key==="ArrowLeft")prevImage();
+ }
+});
+modal.addEventListener("click",e=>{if(e.target===modal)closeModal();});
 </script>
-
 </body>
 </html>
