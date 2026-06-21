@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CTS Photo Album</title>
+
+<style>
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+}
+
+body{
+    font-family:Arial, sans-serif;
+    background:#f4f4f4;
+}
+
+header{
+    background:#1e293b;
+    color:white;
+    padding:20px;
+    text-align:center;
+}
+
+.gallery{
+    padding:20px;
+    display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(250px,1fr));
+    gap:20px;
+}
+
+.card{
+    background:white;
+    border-radius:10px;
+    overflow:hidden;
+    box-shadow:0 3px 10px rgba(0,0,0,0.15);
+}
+
+.card img{
+    width:100%;
+    height:250px;
+    object-fit:cover;
+    cursor:pointer;
+    transition:.3s;
+}
+
+.card img:hover{
+    transform:scale(1.03);
+}
+
+.actions{
+    padding:10px;
+    text-align:center;
+}
+
+.download-btn{
+    display:inline-block;
+    text-decoration:none;
+    background:#2563eb;
+    color:white;
+    padding:8px 15px;
+    border-radius:5px;
+}
+
+.download-btn:hover{
+    background:#1d4ed8;
+}
+
+.modal{
+    display:none;
+    position:fixed;
+    top:0;
+    left:0;
+    width:100%;
+    height:100%;
+    background:rgba(0,0,0,0.9);
+    justify-content:center;
+    align-items:center;
+    z-index:1000;
+}
+
+.modal img{
+    max-width:90%;
+    max-height:90%;
+}
+
+.close{
+    position:absolute;
+    top:20px;
+    right:30px;
+    color:white;
+    font-size:40px;
+    cursor:pointer;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+    <h1>CTS Photo Album</h1>
+    <p>Click image to view • Download any photo</p>
+</header>
+
+<div class="gallery" id="gallery"></div>
+
+<div class="modal" id="modal">
+    <span class="close" onclick="closeModal()">&times;</span>
+    <img id="modalImg">
+</div>
+
+<script>
+
+fetch('photos.json')
+.then(response => response.json())
+.then(files => {
+
+    const gallery = document.getElementById('gallery');
+
+    files.forEach(file => {
+
+        const imagePath = `photos/CTS/${file}`;
+
+        const card = document.createElement('div');
+        card.className = 'card';
+
+        card.innerHTML = `
+            <img src="${imagePath}"
+                 loading="lazy"
+                 onclick="openModal('${imagePath}')">
+
+            <div class="actions">
+                <a href="${imagePath}"
+                   download
+                   class="download-btn">
+                   Download
+                </a>
+            </div>
+        `;
+
+        gallery.appendChild(card);
+    });
+
+})
+.catch(err => {
+    document.getElementById('gallery').innerHTML =
+    "<h2 style='text-align:center'>Unable to load photos.json</h2>";
+});
+
+function openModal(src){
+    document.getElementById('modal').style.display='flex';
+    document.getElementById('modalImg').src=src;
+}
+
+function closeModal(){
+    document.getElementById('modal').style.display='none';
+}
+
+document.getElementById('modal').addEventListener('click',function(e){
+    if(e.target===this){
+        closeModal();
+    }
+});
+
+</script>
+
+</body>
+</html>
